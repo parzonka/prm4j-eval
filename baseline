@@ -56,7 +56,7 @@ jar cf target/jars/Callback.jar -C target/classes .
 mkdir -p logs
 
 # create jar with callback
-javac src/main/java/prm4jeval/EvalCallback.java src/main/java/prm4jeval/SteadyStateInvocation.java -d target/classes -cp "$DACAPO:$APACHEMATH:$GUAVA"
+javac src/main/java/prm4jeval/EvalCallback.java src/main/java/prm4jeval/SteadyStateInvocation.java src/main/java/prm4jeval/MemoryLogger.java -d target/classes -cp "$DACAPO:$APACHEMATH:$GUAVA"
 jar cf target/jars/Callback.jar -C target/classes .
 
 echo "Will perform ${invocations} JVM invocations for all benchmarks in (${benchmarks}) until reaching static state (max. 25 iterations)."
@@ -67,6 +67,8 @@ for invocation in $(jot $invocations 1) ; do
     		echo "Starting benchmark [baseline:$benchmark] measurement $invocation..."
 			java -Xms256M -Xmx2048M \
 				-Dprm4jeval.outputfile=logs/baseline.log \
+				-Dprm4jeval.statsLogging=true \
+				-Dprm4jeval.paramProperty="${paramProperty}" \
 				-Dprm4jeval.invocation=$invocation \
 				-Dprm4jeval.benchmark=$benchmark -Dprm4jeval.parametricProperty=- \
 				-cp "$DACAPO:$GUAVA:$APACHEMATH:${DIR}/target/jars/Callback.jar" \

@@ -1,6 +1,8 @@
 package prm4jeval;
 
 import java.io.File;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -17,6 +19,8 @@ public class EvalCallback extends Callback {
     private SteadyStateInvocation ssi;
     private final Logger logger;
 
+    private MemoryLogger mlogger;
+
     private final String benchmark;
     private final String paramProperty;
     private final int invocation;
@@ -31,6 +35,7 @@ public class EvalCallback extends Callback {
 	benchmark = getMandatorySystemProperty("prm4jeval.benchmark");
 	paramProperty = getSystemProperty("prm4jeval.paramProperty", "-");
 	invocation = Integer.parseInt(getMandatorySystemProperty("prm4jeval.invocation"));
+	mlogger = new MemoryLogger();
     }
 
     /**
@@ -76,6 +81,7 @@ public class EvalCallback extends Callback {
     public void start(String benchmark) {
 	startTime = System.currentTimeMillis();
 	System.out.println("[DaCapo] Starting iteration " + ++iterationCount);
+	mlogger.reset();
 	super.start(benchmark);
     }
 
@@ -85,6 +91,7 @@ public class EvalCallback extends Callback {
 	ssi.addMeasurement(elapsedTime);
 	logger.log(Level.INFO, String.format("%02d %s %s iter %02d %d %f", invocation, benchmark, paramProperty,
 		iterationCount, elapsedTime, ssi.getCoefficientOfStandardDeviation()));
+	mlogger.writeToFile(0);
 	System.out.println("[DaCapo] Stopping... time: " + elapsedTime);
 	System.gc();
 	System.gc();
