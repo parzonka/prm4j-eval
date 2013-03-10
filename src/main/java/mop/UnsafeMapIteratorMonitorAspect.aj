@@ -1,8 +1,11 @@
 package mop;
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.*;
 import javamoprt.*;
+import java.lang.ref.*;
 
 class UnsafeMapIteratorMonitor_Set extends javamoprt.MOPSet {
 	protected UnsafeMapIteratorMonitor[] elementData;
@@ -178,11 +181,11 @@ class UnsafeMapIteratorMonitor_Set extends javamoprt.MOPSet {
 
 class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable, javamoprt.MOPObject {
     
-    	/**
-    	 *  prm4j-eval: resets the parametric monitor
-    	 */
+	/**
+	 *  prm4j-eval: resets the parametric monitor
+	 */
 	static AtomicInteger MATCHES = new AtomicInteger(); // prm4j-eval
-    
+	
 	public long tau = -1;
 	public Object clone() {
 		try {
@@ -196,10 +199,10 @@ class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable
 	}
 
 	int Prop_1_state;
-	static final int Prop_1_transition_createColl[] = {1, 5, 5, 5, 5, 5};;
-	static final int Prop_1_transition_createIter[] = {5, 3, 5, 5, 5, 5};;
-	static final int Prop_1_transition_useIter[] = {5, 5, 5, 3, 2, 5};;
-	static final int Prop_1_transition_updateMap[] = {5, 1, 5, 4, 4, 5};;
+	static final int Prop_1_transition_createColl[] = {2, 5, 5, 5, 5, 5};;
+	static final int Prop_1_transition_createIter[] = {5, 5, 1, 5, 5, 5};;
+	static final int Prop_1_transition_useIter[] = {5, 1, 5, 5, 3, 5};;
+	static final int Prop_1_transition_updateMap[] = {5, 4, 2, 5, 4, 5};;
 
 	boolean Prop_1_Category_match = false;
 
@@ -213,7 +216,7 @@ class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable
 
 		Prop_1_state = Prop_1_transition_createColl[Prop_1_state];
 		if(this.monitorInfo.isFullParam){
-			Prop_1_Category_match = Prop_1_state == 2;
+			Prop_1_Category_match = Prop_1_state == 3;
 		}
 	}
 
@@ -222,7 +225,7 @@ class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable
 
 		Prop_1_state = Prop_1_transition_createIter[Prop_1_state];
 		if(this.monitorInfo.isFullParam){
-			Prop_1_Category_match = Prop_1_state == 2;
+			Prop_1_Category_match = Prop_1_state == 3;
 		}
 	}
 
@@ -231,7 +234,7 @@ class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable
 
 		Prop_1_state = Prop_1_transition_useIter[Prop_1_state];
 		if(this.monitorInfo.isFullParam){
-			Prop_1_Category_match = Prop_1_state == 2;
+			Prop_1_Category_match = Prop_1_state == 3;
 		}
 	}
 
@@ -240,14 +243,14 @@ class UnsafeMapIteratorMonitor extends javamoprt.MOPMonitor implements Cloneable
 
 		Prop_1_state = Prop_1_transition_updateMap[Prop_1_state];
 		if(this.monitorInfo.isFullParam){
-			Prop_1_Category_match = Prop_1_state == 2;
+			Prop_1_Category_match = Prop_1_state == 3;
 		}
 	}
 
 	public final void Prop_1_handler_match (Map map, Collection c, Iterator i){
-		{
-			MATCHES.incrementAndGet(); // prm4j-eval
-		}
+	    {
+		MATCHES.incrementAndGet(); // prm4j-eval
+	    }
 
 	}
 
@@ -473,314 +476,244 @@ public aspect UnsafeMapIteratorMonitorAspect implements javamoprt.MOPObject {
 
 	pointcut UnsafeMapIterator_createIter(Collection c) : (call(* Collection.iterator()) && target(c)) && MOP_CommonPointCut();
 	after (Collection c) returning (Iterator i) : UnsafeMapIterator_createIter(c) {
-		UnsafeMapIterator_activated = true;
 		while (!UnsafeMapIterator_MOPLock.tryLock()) {
 			Thread.yield();
 		}
 		memoryLogger.logMemoryConsumption(); // prm4j-eval
-		Object obj;
-		javamoprt.map.MOPMap tempMap;
-		UnsafeMapIteratorMonitor mainMonitor = null;
-		UnsafeMapIteratorMonitor origMonitor = null;
-		UnsafeMapIteratorMonitor lastMonitor = null;
-		javamoprt.map.MOPMap mainMap = null;
-		javamoprt.map.MOPMap origMap = null;
-		javamoprt.map.MOPMap lastMap = null;
-		UnsafeMapIteratorMonitor_Set mainSet = null;
-		UnsafeMapIteratorMonitor_Set origSet = null;
-		UnsafeMapIteratorMonitor_Set monitors = null;
-		javamoprt.ref.MOPTagWeakReference TempRef_map;
-		javamoprt.ref.MOPTagWeakReference TempRef_c;
-		javamoprt.ref.MOPTagWeakReference TempRef_i;
+		if (UnsafeMapIterator_activated) {
+			Object obj;
+			javamoprt.map.MOPMap tempMap;
+			UnsafeMapIteratorMonitor mainMonitor = null;
+			UnsafeMapIteratorMonitor origMonitor = null;
+			UnsafeMapIteratorMonitor lastMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			javamoprt.map.MOPMap origMap = null;
+			javamoprt.map.MOPMap lastMap = null;
+			UnsafeMapIteratorMonitor_Set mainSet = null;
+			UnsafeMapIteratorMonitor_Set origSet = null;
+			UnsafeMapIteratorMonitor_Set monitors = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_map;
+			javamoprt.ref.MOPTagWeakReference TempRef_c;
+			javamoprt.ref.MOPTagWeakReference TempRef_i;
 
-		// Cache Retrieval
-		if (c == UnsafeMapIterator_c_i_Map_cachekey_1.get() && i == UnsafeMapIterator_c_i_Map_cachekey_2.get()) {
-			TempRef_c = UnsafeMapIterator_c_i_Map_cachekey_1;
-			TempRef_i = UnsafeMapIterator_c_i_Map_cachekey_2;
+			// Cache Retrieval
+			if (c == UnsafeMapIterator_c_i_Map_cachekey_1.get() && i == UnsafeMapIterator_c_i_Map_cachekey_2.get()) {
+				TempRef_c = UnsafeMapIterator_c_i_Map_cachekey_1;
+				TempRef_i = UnsafeMapIterator_c_i_Map_cachekey_2;
 
-			mainSet = UnsafeMapIterator_c_i_Map_cacheset;
-			mainMonitor = UnsafeMapIterator_c_i_Map_cachenode;
-		} else {
-			TempRef_c = UnsafeMapIterator_Collection_RefMap.getTagRef(c);
-			TempRef_i = UnsafeMapIterator_Iterator_RefMap.getTagRef(i);
-		}
-
-		if (mainSet == null || mainMonitor == null) {
-			tempMap = UnsafeMapIterator_c_i_Map;
-			obj = tempMap.getMap(TempRef_c);
-			if (obj == null) {
-				obj = new javamoprt.map.MOPMapOfSetMon(2);
-				tempMap.putMap(TempRef_c, obj);
-			}
-			mainMap = (javamoprt.map.MOPAbstractMap)obj;
-			mainMonitor = (UnsafeMapIteratorMonitor)mainMap.getNode(TempRef_i);
-			mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_i);
-			if (mainSet == null){
-				mainSet = new UnsafeMapIteratorMonitor_Set();
-				mainMap.putSet(TempRef_i, mainSet);
+				mainSet = UnsafeMapIterator_c_i_Map_cacheset;
+				mainMonitor = UnsafeMapIterator_c_i_Map_cachenode;
+			} else {
+				TempRef_c = UnsafeMapIterator_Collection_RefMap.getTagRef(c);
+				TempRef_i = UnsafeMapIterator_Iterator_RefMap.getTagRef(i);
 			}
 
-			if (mainMonitor == null) {
-				origMap = UnsafeMapIterator_c__To__map_c_Map;
-				origSet = (UnsafeMapIteratorMonitor_Set)origMap.getSet(TempRef_c);
-				if (origSet!= null) {
-					int numAlive = 0;
-					for(int i_1 = 0; i_1 < origSet.size; i_1++) {
-						origMonitor = origSet.elementData[i_1];
-						Map map = (Map)origMonitor.MOPRef_map.get();
-						if (!origMonitor.MOP_terminated && map != null) {
-							origSet.elementData[numAlive] = origMonitor;
-							numAlive++;
+			if (mainSet == null || mainMonitor == null) {
+				tempMap = UnsafeMapIterator_c_i_Map;
+				obj = tempMap.getMap(TempRef_c);
+				if (obj != null) {
+					mainMap = (javamoprt.map.MOPAbstractMap)obj;
+					mainMonitor = (UnsafeMapIteratorMonitor)mainMap.getNode(TempRef_i);
+					mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_i);
+				}
 
-							TempRef_map = origMonitor.MOPRef_map;
+				if (mainMonitor == null) {
+					origMap = UnsafeMapIterator_c__To__map_c_Map;
+					origSet = (UnsafeMapIteratorMonitor_Set)origMap.getSet(TempRef_c);
+					if (origSet!= null) {
+						int numAlive = 0;
+						for(int i_1 = 0; i_1 < origSet.size; i_1++) {
+							origMonitor = origSet.elementData[i_1];
+							Map map = (Map)origMonitor.MOPRef_map.get();
+							if (!origMonitor.MOP_terminated && map != null) {
+								origSet.elementData[numAlive] = origMonitor;
+								numAlive++;
 
-							tempMap = UnsafeMapIterator_map_c_i_Map;
-							obj = tempMap.getMap(TempRef_map);
-							if (obj == null) {
-								obj = new javamoprt.map.MOPMapOfAll(1);
-								tempMap.putMap(TempRef_map, obj);
-							}
-							tempMap = (javamoprt.map.MOPAbstractMap)obj;
-							obj = tempMap.getMap(TempRef_c);
-							if (obj == null) {
-								obj = new javamoprt.map.MOPMapOfMonitor(2);
-								tempMap.putMap(TempRef_c, obj);
-							}
-							lastMap = (javamoprt.map.MOPAbstractMap)obj;
-							lastMonitor = (UnsafeMapIteratorMonitor)lastMap.getNode(TempRef_i);
-							if (lastMonitor == null) {
-								boolean timeCheck = true;
+								TempRef_map = origMonitor.MOPRef_map;
 
-								if (TempRef_i.disable > origMonitor.tau|| (TempRef_i.tau > 0 && TempRef_i.tau < origMonitor.tau)) {
-									timeCheck = false;
+								tempMap = UnsafeMapIterator_map_c_i_Map;
+								obj = tempMap.getMap(TempRef_map);
+								if (obj == null) {
+									obj = new javamoprt.map.MOPMapOfAll(1);
+									tempMap.putMap(TempRef_map, obj);
 								}
+								tempMap = (javamoprt.map.MOPAbstractMap)obj;
+								obj = tempMap.getMap(TempRef_c);
+								if (obj == null) {
+									obj = new javamoprt.map.MOPMapOfMonitor(2);
+									tempMap.putMap(TempRef_c, obj);
+								}
+								lastMap = (javamoprt.map.MOPAbstractMap)obj;
+								lastMonitor = (UnsafeMapIteratorMonitor)lastMap.getNode(TempRef_i);
+								if (lastMonitor == null) {
+									boolean timeCheck = true;
 
-								if (timeCheck) {
-									lastMonitor = (UnsafeMapIteratorMonitor)origMonitor.clone();
-									lastMonitor.MOPRef_i = TempRef_i;
-									if (TempRef_i.tau == -1){
-										TempRef_i.tau = origMonitor.tau;
+									if (TempRef_i.disable > origMonitor.tau|| (TempRef_i.tau > 0 && TempRef_i.tau < origMonitor.tau)) {
+										timeCheck = false;
 									}
-									lastMap.putNode(TempRef_i, lastMonitor);
-									lastMonitor.monitorInfo.isFullParam = true;
 
-									tempMap = UnsafeMapIterator_map_c_i_Map;
-									obj = tempMap.getSet(TempRef_map);
-									monitors = (UnsafeMapIteratorMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new UnsafeMapIteratorMonitor_Set();
-										tempMap.putSet(TempRef_map, monitors);
-									}
-									monitors.add(lastMonitor);
+									if (timeCheck) {
+										lastMonitor = (UnsafeMapIteratorMonitor)origMonitor.clone();
+										lastMonitor.MOPRef_i = TempRef_i;
+										if (TempRef_i.tau == -1){
+											TempRef_i.tau = origMonitor.tau;
+										}
+										lastMap.putNode(TempRef_i, lastMonitor);
+										lastMonitor.monitorInfo.isFullParam = true;
 
-									mainMap = UnsafeMapIterator_c_i_Map;
-									obj = mainMap.getMap(TempRef_c);
-									if (obj == null) {
-										obj = new javamoprt.map.MOPMapOfSetMon(1);
-										mainMap.putMap(TempRef_c, obj);
-									}
-									mainMap = (javamoprt.map.MOPAbstractMap)obj;
-									obj = mainMap.getSet(TempRef_i);
-									mainSet = (UnsafeMapIteratorMonitor_Set)obj;
-									if (mainSet == null) {
-										mainSet = new UnsafeMapIteratorMonitor_Set();
-										mainMap.putSet(TempRef_i, mainSet);
-									}
-									mainSet.add(lastMonitor);
+										tempMap = UnsafeMapIterator_map_c_i_Map;
+										obj = tempMap.getSet(TempRef_map);
+										monitors = (UnsafeMapIteratorMonitor_Set)obj;
+										if (monitors == null) {
+											monitors = new UnsafeMapIteratorMonitor_Set();
+											tempMap.putSet(TempRef_map, monitors);
+										}
+										monitors.add(lastMonitor);
 
-									tempMap = UnsafeMapIterator_map_c_i_Map;
-									obj = tempMap.getMap(TempRef_map);
-									if (obj == null) {
-										obj = new javamoprt.map.MOPMapOfSetMon(0);
-										tempMap.putMap(TempRef_map, obj);
-									}
-									tempMap = (javamoprt.map.MOPAbstractMap)obj;
-									obj = tempMap.getSet(TempRef_c);
-									monitors = (UnsafeMapIteratorMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new UnsafeMapIteratorMonitor_Set();
-										tempMap.putSet(TempRef_c, monitors);
-									}
-									monitors.add(lastMonitor);
+										mainMap = UnsafeMapIterator_c_i_Map;
+										obj = mainMap.getMap(TempRef_c);
+										if (obj == null) {
+											obj = new javamoprt.map.MOPMapOfSetMon(1);
+											mainMap.putMap(TempRef_c, obj);
+										}
+										mainMap = (javamoprt.map.MOPAbstractMap)obj;
+										obj = mainMap.getSet(TempRef_i);
+										mainSet = (UnsafeMapIteratorMonitor_Set)obj;
+										if (mainSet == null) {
+											mainSet = new UnsafeMapIteratorMonitor_Set();
+											mainMap.putSet(TempRef_i, mainSet);
+										}
+										mainSet.add(lastMonitor);
 
-									tempMap = UnsafeMapIterator_i_Map;
-									obj = tempMap.getSet(TempRef_i);
-									monitors = (UnsafeMapIteratorMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new UnsafeMapIteratorMonitor_Set();
-										tempMap.putSet(TempRef_i, monitors);
+										tempMap = UnsafeMapIterator_map_c_i_Map;
+										obj = tempMap.getMap(TempRef_map);
+										if (obj == null) {
+											obj = new javamoprt.map.MOPMapOfSetMon(0);
+											tempMap.putMap(TempRef_map, obj);
+										}
+										tempMap = (javamoprt.map.MOPAbstractMap)obj;
+										obj = tempMap.getSet(TempRef_c);
+										monitors = (UnsafeMapIteratorMonitor_Set)obj;
+										if (monitors == null) {
+											monitors = new UnsafeMapIteratorMonitor_Set();
+											tempMap.putSet(TempRef_c, monitors);
+										}
+										monitors.add(lastMonitor);
+
+										tempMap = UnsafeMapIterator_i_Map;
+										obj = tempMap.getSet(TempRef_i);
+										monitors = (UnsafeMapIteratorMonitor_Set)obj;
+										if (monitors == null) {
+											monitors = new UnsafeMapIteratorMonitor_Set();
+											tempMap.putSet(TempRef_i, monitors);
+										}
+										monitors.add(lastMonitor);
 									}
-									monitors.add(lastMonitor);
 								}
 							}
 						}
+
+						for(int i_1 = numAlive; i_1 < origSet.size; i_1++) {
+							origSet.elementData[i_1] = null;
+						}
+						origSet.size = numAlive;
 					}
 
-					for(int i_1 = numAlive; i_1 < origSet.size; i_1++) {
-						origSet.elementData[i_1] = null;
-					}
-					origSet.size = numAlive;
-				}
-				if (mainMonitor == null) {
-					mainMonitor = new UnsafeMapIteratorMonitor();
-					mainMonitor.monitorInfo = new javamoprt.MOPMonitorInfo();
-					mainMonitor.monitorInfo.isFullParam = false;
-
-					mainMonitor.MOPRef_c = TempRef_c;
-					mainMonitor.MOPRef_i = TempRef_i;
-
-					mainMap.putNode(TempRef_i, mainMonitor);
-					mainSet.add(mainMonitor);
-					mainMonitor.tau = UnsafeMapIterator_timestamp;
-					if (TempRef_c.tau == -1){
-						TempRef_c.tau = UnsafeMapIterator_timestamp;
-					}
-					if (TempRef_i.tau == -1){
-						TempRef_i.tau = UnsafeMapIterator_timestamp;
-					}
+					TempRef_i.disable = UnsafeMapIterator_timestamp;
 					UnsafeMapIterator_timestamp++;
-
-					tempMap = UnsafeMapIterator_i_Map;
-					obj = tempMap.getSet(TempRef_i);
-					monitors = (UnsafeMapIteratorMonitor_Set)obj;
-					if (monitors == null) {
-						monitors = new UnsafeMapIteratorMonitor_Set();
-						tempMap.putSet(TempRef_i, monitors);
-					}
-					monitors.add(mainMonitor);
 				}
 
-				TempRef_i.disable = UnsafeMapIterator_timestamp;
-				UnsafeMapIterator_timestamp++;
+				UnsafeMapIterator_c_i_Map_cachekey_1 = TempRef_c;
+				UnsafeMapIterator_c_i_Map_cachekey_2 = TempRef_i;
+				UnsafeMapIterator_c_i_Map_cacheset = mainSet;
+				UnsafeMapIterator_c_i_Map_cachenode = mainMonitor;
 			}
 
-			UnsafeMapIterator_c_i_Map_cachekey_1 = TempRef_c;
-			UnsafeMapIterator_c_i_Map_cachekey_2 = TempRef_i;
-			UnsafeMapIterator_c_i_Map_cacheset = mainSet;
-			UnsafeMapIterator_c_i_Map_cachenode = mainMonitor;
-		}
-
-		if(mainSet != null) {
-			mainSet.event_createIter(c, i);
+			if(mainSet != null) {
+				mainSet.event_createIter(c, i);
+			}
 		}
 		UnsafeMapIterator_MOPLock.unlock();
 	}
 
 	pointcut UnsafeMapIterator_useIter(Iterator i) : (call(* Iterator.next()) && target(i)) && MOP_CommonPointCut();
 	before (Iterator i) : UnsafeMapIterator_useIter(i) {
-		UnsafeMapIterator_activated = true;
 		while (!UnsafeMapIterator_MOPLock.tryLock()) {
 			Thread.yield();
 		}
 		memoryLogger.logMemoryConsumption(); // prm4j-eval
-		UnsafeMapIteratorMonitor mainMonitor = null;
-		javamoprt.map.MOPMap mainMap = null;
-		UnsafeMapIteratorMonitor_Set mainSet = null;
-		javamoprt.ref.MOPTagWeakReference TempRef_i;
+		if (UnsafeMapIterator_activated) {
+			UnsafeMapIteratorMonitor mainMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			UnsafeMapIteratorMonitor_Set mainSet = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_i;
 
-		// Cache Retrieval
-		if (i == UnsafeMapIterator_i_Map_cachekey_2.get()) {
-			TempRef_i = UnsafeMapIterator_i_Map_cachekey_2;
+			// Cache Retrieval
+			if (i == UnsafeMapIterator_i_Map_cachekey_2.get()) {
+				TempRef_i = UnsafeMapIterator_i_Map_cachekey_2;
 
-			mainSet = UnsafeMapIterator_i_Map_cacheset;
-			mainMonitor = UnsafeMapIterator_i_Map_cachenode;
-		} else {
-			TempRef_i = UnsafeMapIterator_Iterator_RefMap.getTagRef(i);
-		}
-
-		if (mainSet == null || mainMonitor == null) {
-			mainMap = UnsafeMapIterator_i_Map;
-			mainMonitor = (UnsafeMapIteratorMonitor)mainMap.getNode(TempRef_i);
-			mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_i);
-			if (mainSet == null){
-				mainSet = new UnsafeMapIteratorMonitor_Set();
-				mainMap.putSet(TempRef_i, mainSet);
+				mainSet = UnsafeMapIterator_i_Map_cacheset;
+				mainMonitor = UnsafeMapIterator_i_Map_cachenode;
+			} else {
+				TempRef_i = UnsafeMapIterator_Iterator_RefMap.getTagRef(i);
 			}
 
-			if (mainMonitor == null) {
-				mainMonitor = new UnsafeMapIteratorMonitor();
-				mainMonitor.monitorInfo = new javamoprt.MOPMonitorInfo();
-				mainMonitor.monitorInfo.isFullParam = false;
+			if (mainSet == null || mainMonitor == null) {
+				mainMap = UnsafeMapIterator_i_Map;
+				mainMonitor = (UnsafeMapIteratorMonitor)mainMap.getNode(TempRef_i);
+				mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_i);
 
-				mainMonitor.MOPRef_i = TempRef_i;
+				if (mainMonitor == null) {
 
-				UnsafeMapIterator_i_Map.putNode(TempRef_i, mainMonitor);
-				mainSet.add(mainMonitor);
-				mainMonitor.tau = UnsafeMapIterator_timestamp;
-				if (TempRef_i.tau == -1){
-					TempRef_i.tau = UnsafeMapIterator_timestamp;
+					TempRef_i.disable = UnsafeMapIterator_timestamp;
+					UnsafeMapIterator_timestamp++;
 				}
-				UnsafeMapIterator_timestamp++;
 
-				TempRef_i.disable = UnsafeMapIterator_timestamp;
-				UnsafeMapIterator_timestamp++;
+				UnsafeMapIterator_i_Map_cachekey_2 = TempRef_i;
+				UnsafeMapIterator_i_Map_cacheset = mainSet;
+				UnsafeMapIterator_i_Map_cachenode = mainMonitor;
 			}
 
-			UnsafeMapIterator_i_Map_cachekey_2 = TempRef_i;
-			UnsafeMapIterator_i_Map_cacheset = mainSet;
-			UnsafeMapIterator_i_Map_cachenode = mainMonitor;
-		}
-
-		if(mainSet != null) {
-			mainSet.event_useIter(i);
+			if(mainSet != null) {
+				mainSet.event_useIter(i);
+			}
 		}
 		UnsafeMapIterator_MOPLock.unlock();
 	}
 
 	pointcut UnsafeMapIterator_updateMap(Map map) : ((call(* Map.put*(..)) || call(* Map.putAll*(..)) || call(* Map.clear()) || call(* Map.remove*(..))) && target(map)) && MOP_CommonPointCut();
 	after (Map map) : UnsafeMapIterator_updateMap(map) {
-		UnsafeMapIterator_activated = true;
 		while (!UnsafeMapIterator_MOPLock.tryLock()) {
 			Thread.yield();
 		}
 		memoryLogger.logMemoryConsumption(); // prm4j-eval
-		UnsafeMapIteratorMonitor mainMonitor = null;
-		javamoprt.map.MOPMap mainMap = null;
-		UnsafeMapIteratorMonitor_Set mainSet = null;
-		javamoprt.ref.MOPTagWeakReference TempRef_map;
+		if (UnsafeMapIterator_activated) {
+			UnsafeMapIteratorMonitor mainMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			UnsafeMapIteratorMonitor_Set mainSet = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_map;
 
-		// Cache Retrieval
-		if (map == UnsafeMapIterator_map_Map_cachekey_0.get()) {
-			TempRef_map = UnsafeMapIterator_map_Map_cachekey_0;
+			// Cache Retrieval
+			if (map == UnsafeMapIterator_map_Map_cachekey_0.get()) {
+				TempRef_map = UnsafeMapIterator_map_Map_cachekey_0;
 
-			mainSet = UnsafeMapIterator_map_Map_cacheset;
-			mainMonitor = UnsafeMapIterator_map_Map_cachenode;
-		} else {
-			TempRef_map = UnsafeMapIterator_Map_RefMap.getTagRef(map);
-		}
-
-		if (mainSet == null || mainMonitor == null) {
-			mainMap = UnsafeMapIterator_map_c_i_Map;
-			mainMonitor = (UnsafeMapIteratorMonitor)mainMap.getNode(TempRef_map);
-			mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_map);
-			if (mainSet == null){
-				mainSet = new UnsafeMapIteratorMonitor_Set();
-				mainMap.putSet(TempRef_map, mainSet);
+				mainSet = UnsafeMapIterator_map_Map_cacheset;
+			} else {
+				TempRef_map = UnsafeMapIterator_Map_RefMap.getTagRefNonCreative(map);
 			}
 
-			if (mainMonitor == null) {
-				mainMonitor = new UnsafeMapIteratorMonitor();
-				mainMonitor.monitorInfo = new javamoprt.MOPMonitorInfo();
-				mainMonitor.monitorInfo.isFullParam = false;
+			if ((mainSet == null) && TempRef_map != javamoprt.map.MOPTagRefMap.NULRef) {
+				mainMap = UnsafeMapIterator_map_c_i_Map;
+				mainSet = (UnsafeMapIteratorMonitor_Set)mainMap.getSet(TempRef_map);
 
-				mainMonitor.MOPRef_map = TempRef_map;
-
-				UnsafeMapIterator_map_c_i_Map.putNode(TempRef_map, mainMonitor);
-				mainSet.add(mainMonitor);
-				mainMonitor.tau = UnsafeMapIterator_timestamp;
-				if (TempRef_map.tau == -1){
-					TempRef_map.tau = UnsafeMapIterator_timestamp;
-				}
-				UnsafeMapIterator_timestamp++;
+				UnsafeMapIterator_map_Map_cachekey_0 = TempRef_map;
+				UnsafeMapIterator_map_Map_cacheset = mainSet;
+				UnsafeMapIterator_map_Map_cachenode = mainMonitor;
 			}
 
-			UnsafeMapIterator_map_Map_cachekey_0 = TempRef_map;
-			UnsafeMapIterator_map_Map_cacheset = mainSet;
-			UnsafeMapIterator_map_Map_cachenode = mainMonitor;
-		}
-
-		if(mainSet != null) {
-			mainSet.event_updateMap(map);
+			if(mainSet != null) {
+				mainSet.event_updateMap(map);
+			}
 		}
 		UnsafeMapIterator_MOPLock.unlock();
 	}
@@ -797,6 +730,7 @@ public aspect UnsafeMapIteratorMonitorAspect implements javamoprt.MOPObject {
 
 		UnsafeMapIterator_activated = false;
 		
+		// Indexing Trees
 		UnsafeMapIterator_map_c_i_Map = new javamoprt.map.MOPMapOfAll(0);
 		UnsafeMapIterator_map_c_i_Map_cachekey_0 = javamoprt.map.MOPTagRefMap.NULRef;
 		UnsafeMapIterator_map_c_i_Map_cachekey_1 = javamoprt.map.MOPTagRefMap.NULRef;
@@ -820,9 +754,11 @@ public aspect UnsafeMapIteratorMonitorAspect implements javamoprt.MOPObject {
 		UnsafeMapIterator_i_Map_cachenode = null;
 		UnsafeMapIterator_c__To__map_c_Map = new javamoprt.map.MOPMapOfSetMon(1);
 
+		// Trees for References
 		UnsafeMapIterator_Collection_RefMap = new javamoprt.map.MOPTagRefMap();
 		UnsafeMapIterator_Iterator_RefMap = new javamoprt.map.MOPTagRefMap();
 		UnsafeMapIterator_Map_RefMap = new javamoprt.map.MOPTagRefMap();
+
 		
 		UnsafeMapIteratorMapManager = new javamoprt.map.MOPMapManager();
 		UnsafeMapIteratorMapManager.start();

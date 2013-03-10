@@ -1,11 +1,11 @@
 package mop;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import javamoprt.MOPMonitor;
+import java.util.concurrent.locks.*;
+import javamoprt.*;
+import java.lang.ref.*;
 
 class SafeSyncCollectionMonitor_Set extends javamoprt.MOPSet {
 	protected SafeSyncCollectionMonitor[] elementData;
@@ -185,9 +185,9 @@ class SafeSyncCollectionMonitor_Set extends javamoprt.MOPSet {
 
 class SafeSyncCollectionMonitor extends javamoprt.MOPMonitor implements Cloneable, javamoprt.MOPObject {
     
-    	/**
-    	 *  prm4j-eval: Measures number of matches.
-    	 */
+	/**
+	 *  prm4j-eval: Measures number of matches.
+	 */
 	static AtomicInteger MATCHES = new AtomicInteger();  // prm4j-eval
 	
 	public long tau = -1;
@@ -317,8 +317,8 @@ class SafeSyncCollectionMonitor extends javamoprt.MOPMonitor implements Cloneabl
 }
 
 public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
-	javamoprt.map.MOPMapManager SafeSyncCollectionMapManager;  // prm4j-eval
-	private final MemoryLogger memoryLogger;
+	javamoprt.map.MOPMapManager SafeSyncCollectionMapManager;
+	private final MemoryLogger memoryLogger; // prm4j-eval
 	public SafeSyncCollectionMonitorAspect(){
 		SafeSyncCollectionMapManager = new javamoprt.map.MOPMapManager();
 		SafeSyncCollectionMapManager.start();
@@ -327,7 +327,8 @@ public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
 	}
 
 	// Declarations for the Lock
-	static Object SafeSyncCollection_MOPLock = new Object();
+	static ReentrantLock SafeSyncCollection_MOPLock = new ReentrantLock();
+	static Condition SafeSyncCollection_MOPLock_cond = SafeSyncCollection_MOPLock.newCondition();
 
 	// Declarations for Timestamps
 	static long SafeSyncCollection_timestamp = 1;
@@ -355,298 +356,306 @@ public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
 	pointcut SafeSyncCollection_sync() : (call(* Collections.synchr*(..))) && MOP_CommonPointCut();
 	after () returning (Object c) : SafeSyncCollection_sync() {
 		SafeSyncCollection_activated = true;
-		synchronized(SafeSyncCollection_MOPLock) {
-		    	memoryLogger.logMemoryConsumption(); // prm4j-eval
-			SafeSyncCollectionMonitor mainMonitor = null;
-			javamoprt.map.MOPMap mainMap = null;
-			SafeSyncCollectionMonitor_Set mainSet = null;
-			javamoprt.ref.MOPTagWeakReference TempRef_c;
-
-			// Cache Retrieval
-			if (c == SafeSyncCollection_c_Map_cachekey_0.get()) {
-				TempRef_c = SafeSyncCollection_c_Map_cachekey_0;
-
-				mainSet = SafeSyncCollection_c_Map_cacheset;
-				mainMonitor = SafeSyncCollection_c_Map_cachenode;
-			} else {
-				TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
-			}
-
-			if (mainSet == null || mainMonitor == null) {
-				mainMap = SafeSyncCollection_c_iter_Map;
-				mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_c);
-				mainSet = (SafeSyncCollectionMonitor_Set)mainMap.getSet(TempRef_c);
-				if (mainSet == null){
-					mainSet = new SafeSyncCollectionMonitor_Set();
-					mainMap.putSet(TempRef_c, mainSet);
-				}
-
-				if (mainMonitor == null) {
-					mainMonitor = new SafeSyncCollectionMonitor();
-
-					mainMonitor.MOPRef_c = TempRef_c;
-
-					SafeSyncCollection_c_iter_Map.putNode(TempRef_c, mainMonitor);
-					mainSet.add(mainMonitor);
-					mainMonitor.tau = SafeSyncCollection_timestamp;
-					if (TempRef_c.tau == -1){
-						TempRef_c.tau = SafeSyncCollection_timestamp;
-					}
-					SafeSyncCollection_timestamp++;
-				}
-
-				SafeSyncCollection_c_Map_cachekey_0 = TempRef_c;
-				SafeSyncCollection_c_Map_cacheset = mainSet;
-				SafeSyncCollection_c_Map_cachenode = mainMonitor;
-			}
-
-			if(mainSet != null) {
-				mainSet.event_sync(c);
-			}
+		while (!SafeSyncCollection_MOPLock.tryLock()) {
+			Thread.yield();
 		}
+		memoryLogger.logMemoryConsumption(); // prm4j-eval
+		SafeSyncCollectionMonitor mainMonitor = null;
+		javamoprt.map.MOPMap mainMap = null;
+		SafeSyncCollectionMonitor_Set mainSet = null;
+		javamoprt.ref.MOPTagWeakReference TempRef_c;
+
+		// Cache Retrieval
+		if (c == SafeSyncCollection_c_Map_cachekey_0.get()) {
+			TempRef_c = SafeSyncCollection_c_Map_cachekey_0;
+
+			mainSet = SafeSyncCollection_c_Map_cacheset;
+			mainMonitor = SafeSyncCollection_c_Map_cachenode;
+		} else {
+			TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
+		}
+
+		if (mainSet == null || mainMonitor == null) {
+			mainMap = SafeSyncCollection_c_iter_Map;
+			mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_c);
+			mainSet = (SafeSyncCollectionMonitor_Set)mainMap.getSet(TempRef_c);
+			if (mainSet == null){
+				mainSet = new SafeSyncCollectionMonitor_Set();
+				mainMap.putSet(TempRef_c, mainSet);
+			}
+
+			if (mainMonitor == null) {
+				mainMonitor = new SafeSyncCollectionMonitor();
+
+				mainMonitor.MOPRef_c = TempRef_c;
+
+				SafeSyncCollection_c_iter_Map.putNode(TempRef_c, mainMonitor);
+				mainSet.add(mainMonitor);
+				mainMonitor.tau = SafeSyncCollection_timestamp;
+				if (TempRef_c.tau == -1){
+					TempRef_c.tau = SafeSyncCollection_timestamp;
+				}
+				SafeSyncCollection_timestamp++;
+			}
+
+			SafeSyncCollection_c_Map_cachekey_0 = TempRef_c;
+			SafeSyncCollection_c_Map_cacheset = mainSet;
+			SafeSyncCollection_c_Map_cachenode = mainMonitor;
+		}
+
+		if(mainSet != null) {
+			mainSet.event_sync(c);
+		}
+		SafeSyncCollection_MOPLock.unlock();
 	}
 
 	pointcut SafeSyncCollection_syncCreateIter(Object c) : (call(* Collection+.iterator()) && target(c) && if(Thread.holdsLock(c))) && MOP_CommonPointCut();
 	after (Object c) returning (Iterator iter) : SafeSyncCollection_syncCreateIter(c) {
-		synchronized(SafeSyncCollection_MOPLock) {
-			if (SafeSyncCollection_activated) {
-			    	memoryLogger.logMemoryConsumption(); // prm4j-eval
-				Object obj;
-				javamoprt.map.MOPMap tempMap;
-				SafeSyncCollectionMonitor mainMonitor = null;
-				SafeSyncCollectionMonitor origMonitor = null;
-				javamoprt.map.MOPMap mainMap = null;
-				javamoprt.map.MOPMap origMap = null;
-				SafeSyncCollectionMonitor_Set monitors = null;
-				javamoprt.ref.MOPTagWeakReference TempRef_c;
-				javamoprt.ref.MOPTagWeakReference TempRef_iter;
+		while (!SafeSyncCollection_MOPLock.tryLock()) {
+			Thread.yield();
+		}
+		memoryLogger.logMemoryConsumption(); // prm4j-eval
+		if (SafeSyncCollection_activated) {
+			Object obj;
+			javamoprt.map.MOPMap tempMap;
+			SafeSyncCollectionMonitor mainMonitor = null;
+			SafeSyncCollectionMonitor origMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			javamoprt.map.MOPMap origMap = null;
+			SafeSyncCollectionMonitor_Set monitors = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_c;
+			javamoprt.ref.MOPTagWeakReference TempRef_iter;
 
-				// Cache Retrieval
-				if (c == SafeSyncCollection_c_iter_Map_cachekey_0.get() && iter == SafeSyncCollection_c_iter_Map_cachekey_1.get()) {
-					TempRef_c = SafeSyncCollection_c_iter_Map_cachekey_0;
-					TempRef_iter = SafeSyncCollection_c_iter_Map_cachekey_1;
+			// Cache Retrieval
+			if (c == SafeSyncCollection_c_iter_Map_cachekey_0.get() && iter == SafeSyncCollection_c_iter_Map_cachekey_1.get()) {
+				TempRef_c = SafeSyncCollection_c_iter_Map_cachekey_0;
+				TempRef_iter = SafeSyncCollection_c_iter_Map_cachekey_1;
 
-					mainMonitor = SafeSyncCollection_c_iter_Map_cachenode;
-				} else {
-					TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
-					TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+				mainMonitor = SafeSyncCollection_c_iter_Map_cachenode;
+			} else {
+				TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
+				TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+			}
+
+			if (mainMonitor == null) {
+				tempMap = SafeSyncCollection_c_iter_Map;
+				obj = tempMap.getMap(TempRef_c);
+				if (obj != null) {
+					mainMap = (javamoprt.map.MOPAbstractMap)obj;
+					mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
 				}
 
 				if (mainMonitor == null) {
-					tempMap = SafeSyncCollection_c_iter_Map;
-					obj = tempMap.getMap(TempRef_c);
-					if (obj != null) {
-						mainMap = (javamoprt.map.MOPAbstractMap)obj;
-						mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
-					}
-
 					if (mainMonitor == null) {
-						if (mainMonitor == null) {
-							origMap = SafeSyncCollection_c_iter_Map;
-							origMonitor = (SafeSyncCollectionMonitor)origMap.getNode(TempRef_c);
-							if (origMonitor != null) {
-								boolean timeCheck = true;
+						origMap = SafeSyncCollection_c_iter_Map;
+						origMonitor = (SafeSyncCollectionMonitor)origMap.getNode(TempRef_c);
+						if (origMonitor != null) {
+							boolean timeCheck = true;
 
-								if (TempRef_iter.disable > origMonitor.tau) {
-									timeCheck = false;
+							if (TempRef_iter.disable > origMonitor.tau) {
+								timeCheck = false;
+							}
+
+							if (timeCheck) {
+								mainMonitor = (SafeSyncCollectionMonitor)origMonitor.clone();
+								mainMonitor.MOPRef_iter = TempRef_iter;
+								if (TempRef_iter.tau == -1){
+									TempRef_iter.tau = origMonitor.tau;
 								}
-
-								if (timeCheck) {
-									mainMonitor = (SafeSyncCollectionMonitor)origMonitor.clone();
-									mainMonitor.MOPRef_iter = TempRef_iter;
-									if (TempRef_iter.tau == -1){
-										TempRef_iter.tau = origMonitor.tau;
-									}
-									mainMap = SafeSyncCollection_c_iter_Map;
-									obj = mainMap.getMap(TempRef_c);
-									if (obj == null) {
-										obj = new javamoprt.map.MOPMapOfMonitor(1);
-										mainMap.putMap(TempRef_c, obj);
-									}
-									mainMap = (javamoprt.map.MOPAbstractMap)obj;
-									mainMap.putNode(TempRef_iter, mainMonitor);
-
-									tempMap = SafeSyncCollection_c_iter_Map;
-									obj = tempMap.getSet(TempRef_c);
-									monitors = (SafeSyncCollectionMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new SafeSyncCollectionMonitor_Set();
-										tempMap.putSet(TempRef_c, monitors);
-									}
-									monitors.add(mainMonitor);
-
-									tempMap = SafeSyncCollection_iter_Map;
-									obj = tempMap.getSet(TempRef_iter);
-									monitors = (SafeSyncCollectionMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new SafeSyncCollectionMonitor_Set();
-										tempMap.putSet(TempRef_iter, monitors);
-									}
-									monitors.add(mainMonitor);
+								mainMap = SafeSyncCollection_c_iter_Map;
+								obj = mainMap.getMap(TempRef_c);
+								if (obj == null) {
+									obj = new javamoprt.map.MOPMapOfMonitor(1);
+									mainMap.putMap(TempRef_c, obj);
 								}
+								mainMap = (javamoprt.map.MOPAbstractMap)obj;
+								mainMap.putNode(TempRef_iter, mainMonitor);
+
+								tempMap = SafeSyncCollection_c_iter_Map;
+								obj = tempMap.getSet(TempRef_c);
+								monitors = (SafeSyncCollectionMonitor_Set)obj;
+								if (monitors == null) {
+									monitors = new SafeSyncCollectionMonitor_Set();
+									tempMap.putSet(TempRef_c, monitors);
+								}
+								monitors.add(mainMonitor);
+
+								tempMap = SafeSyncCollection_iter_Map;
+								obj = tempMap.getSet(TempRef_iter);
+								monitors = (SafeSyncCollectionMonitor_Set)obj;
+								if (monitors == null) {
+									monitors = new SafeSyncCollectionMonitor_Set();
+									tempMap.putSet(TempRef_iter, monitors);
+								}
+								monitors.add(mainMonitor);
 							}
 						}
-
-						TempRef_iter.disable = SafeSyncCollection_timestamp;
-						SafeSyncCollection_timestamp++;
 					}
 
-					SafeSyncCollection_c_iter_Map_cachekey_0 = TempRef_c;
-					SafeSyncCollection_c_iter_Map_cachekey_1 = TempRef_iter;
-					SafeSyncCollection_c_iter_Map_cachenode = mainMonitor;
+					TempRef_iter.disable = SafeSyncCollection_timestamp;
+					SafeSyncCollection_timestamp++;
 				}
 
-				if (mainMonitor != null ) {
-					mainMonitor.Prop_1_event_syncCreateIter(c, iter);
-					if(mainMonitor.Prop_1_Category_match) {
-						mainMonitor.Prop_1_handler_match(c, iter);
-					}
+				SafeSyncCollection_c_iter_Map_cachekey_0 = TempRef_c;
+				SafeSyncCollection_c_iter_Map_cachekey_1 = TempRef_iter;
+				SafeSyncCollection_c_iter_Map_cachenode = mainMonitor;
+			}
+
+			if (mainMonitor != null ) {
+				mainMonitor.Prop_1_event_syncCreateIter(c, iter);
+				if(mainMonitor.Prop_1_Category_match) {
+					mainMonitor.Prop_1_handler_match(c, iter);
 				}
 			}
 		}
+		SafeSyncCollection_MOPLock.unlock();
 	}
 
 	pointcut SafeSyncCollection_asyncCreateIter(Object c) : (call(* Collection+.iterator()) && target(c) && if(!Thread.holdsLock(c))) && MOP_CommonPointCut();
 	after (Object c) returning (Iterator iter) : SafeSyncCollection_asyncCreateIter(c) {
-		synchronized(SafeSyncCollection_MOPLock) {
-			if (SafeSyncCollection_activated) {
-			    	memoryLogger.logMemoryConsumption(); // prm4j-eval
-				Object obj;
-				javamoprt.map.MOPMap tempMap;
-				SafeSyncCollectionMonitor mainMonitor = null;
-				SafeSyncCollectionMonitor origMonitor = null;
-				javamoprt.map.MOPMap mainMap = null;
-				javamoprt.map.MOPMap origMap = null;
-				SafeSyncCollectionMonitor_Set monitors = null;
-				javamoprt.ref.MOPTagWeakReference TempRef_c;
-				javamoprt.ref.MOPTagWeakReference TempRef_iter;
+		while (!SafeSyncCollection_MOPLock.tryLock()) {
+			Thread.yield();
+		}
+		memoryLogger.logMemoryConsumption(); // prm4j-eval
+		if (SafeSyncCollection_activated) {
+			Object obj;
+			javamoprt.map.MOPMap tempMap;
+			SafeSyncCollectionMonitor mainMonitor = null;
+			SafeSyncCollectionMonitor origMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			javamoprt.map.MOPMap origMap = null;
+			SafeSyncCollectionMonitor_Set monitors = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_c;
+			javamoprt.ref.MOPTagWeakReference TempRef_iter;
 
-				// Cache Retrieval
-				if (c == SafeSyncCollection_c_iter_Map_cachekey_0.get() && iter == SafeSyncCollection_c_iter_Map_cachekey_1.get()) {
-					TempRef_c = SafeSyncCollection_c_iter_Map_cachekey_0;
-					TempRef_iter = SafeSyncCollection_c_iter_Map_cachekey_1;
+			// Cache Retrieval
+			if (c == SafeSyncCollection_c_iter_Map_cachekey_0.get() && iter == SafeSyncCollection_c_iter_Map_cachekey_1.get()) {
+				TempRef_c = SafeSyncCollection_c_iter_Map_cachekey_0;
+				TempRef_iter = SafeSyncCollection_c_iter_Map_cachekey_1;
 
-					mainMonitor = SafeSyncCollection_c_iter_Map_cachenode;
-				} else {
-					TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
-					TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+				mainMonitor = SafeSyncCollection_c_iter_Map_cachenode;
+			} else {
+				TempRef_c = SafeSyncCollection_Object_RefMap.getTagRef(c);
+				TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+			}
+
+			if (mainMonitor == null) {
+				tempMap = SafeSyncCollection_c_iter_Map;
+				obj = tempMap.getMap(TempRef_c);
+				if (obj != null) {
+					mainMap = (javamoprt.map.MOPAbstractMap)obj;
+					mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
 				}
 
 				if (mainMonitor == null) {
-					tempMap = SafeSyncCollection_c_iter_Map;
-					obj = tempMap.getMap(TempRef_c);
-					if (obj != null) {
-						mainMap = (javamoprt.map.MOPAbstractMap)obj;
-						mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
-					}
-
 					if (mainMonitor == null) {
-						if (mainMonitor == null) {
-							origMap = SafeSyncCollection_c_iter_Map;
-							origMonitor = (SafeSyncCollectionMonitor)origMap.getNode(TempRef_c);
-							if (origMonitor != null) {
-								boolean timeCheck = true;
+						origMap = SafeSyncCollection_c_iter_Map;
+						origMonitor = (SafeSyncCollectionMonitor)origMap.getNode(TempRef_c);
+						if (origMonitor != null) {
+							boolean timeCheck = true;
 
-								if (TempRef_iter.disable > origMonitor.tau) {
-									timeCheck = false;
+							if (TempRef_iter.disable > origMonitor.tau) {
+								timeCheck = false;
+							}
+
+							if (timeCheck) {
+								mainMonitor = (SafeSyncCollectionMonitor)origMonitor.clone();
+								mainMonitor.MOPRef_iter = TempRef_iter;
+								if (TempRef_iter.tau == -1){
+									TempRef_iter.tau = origMonitor.tau;
 								}
-
-								if (timeCheck) {
-									mainMonitor = (SafeSyncCollectionMonitor)origMonitor.clone();
-									mainMonitor.MOPRef_iter = TempRef_iter;
-									if (TempRef_iter.tau == -1){
-										TempRef_iter.tau = origMonitor.tau;
-									}
-									mainMap = SafeSyncCollection_c_iter_Map;
-									obj = mainMap.getMap(TempRef_c);
-									if (obj == null) {
-										obj = new javamoprt.map.MOPMapOfMonitor(1);
-										mainMap.putMap(TempRef_c, obj);
-									}
-									mainMap = (javamoprt.map.MOPAbstractMap)obj;
-									mainMap.putNode(TempRef_iter, mainMonitor);
-
-									tempMap = SafeSyncCollection_c_iter_Map;
-									obj = tempMap.getSet(TempRef_c);
-									monitors = (SafeSyncCollectionMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new SafeSyncCollectionMonitor_Set();
-										tempMap.putSet(TempRef_c, monitors);
-									}
-									monitors.add(mainMonitor);
-
-									tempMap = SafeSyncCollection_iter_Map;
-									obj = tempMap.getSet(TempRef_iter);
-									monitors = (SafeSyncCollectionMonitor_Set)obj;
-									if (monitors == null) {
-										monitors = new SafeSyncCollectionMonitor_Set();
-										tempMap.putSet(TempRef_iter, monitors);
-									}
-									monitors.add(mainMonitor);
+								mainMap = SafeSyncCollection_c_iter_Map;
+								obj = mainMap.getMap(TempRef_c);
+								if (obj == null) {
+									obj = new javamoprt.map.MOPMapOfMonitor(1);
+									mainMap.putMap(TempRef_c, obj);
 								}
+								mainMap = (javamoprt.map.MOPAbstractMap)obj;
+								mainMap.putNode(TempRef_iter, mainMonitor);
+
+								tempMap = SafeSyncCollection_c_iter_Map;
+								obj = tempMap.getSet(TempRef_c);
+								monitors = (SafeSyncCollectionMonitor_Set)obj;
+								if (monitors == null) {
+									monitors = new SafeSyncCollectionMonitor_Set();
+									tempMap.putSet(TempRef_c, monitors);
+								}
+								monitors.add(mainMonitor);
+
+								tempMap = SafeSyncCollection_iter_Map;
+								obj = tempMap.getSet(TempRef_iter);
+								monitors = (SafeSyncCollectionMonitor_Set)obj;
+								if (monitors == null) {
+									monitors = new SafeSyncCollectionMonitor_Set();
+									tempMap.putSet(TempRef_iter, monitors);
+								}
+								monitors.add(mainMonitor);
 							}
 						}
-
-						TempRef_iter.disable = SafeSyncCollection_timestamp;
-						SafeSyncCollection_timestamp++;
 					}
 
-					SafeSyncCollection_c_iter_Map_cachekey_0 = TempRef_c;
-					SafeSyncCollection_c_iter_Map_cachekey_1 = TempRef_iter;
-					SafeSyncCollection_c_iter_Map_cachenode = mainMonitor;
+					TempRef_iter.disable = SafeSyncCollection_timestamp;
+					SafeSyncCollection_timestamp++;
 				}
 
-				if (mainMonitor != null ) {
-					mainMonitor.Prop_1_event_asyncCreateIter(c, iter);
-					if(mainMonitor.Prop_1_Category_match) {
-						mainMonitor.Prop_1_handler_match(c, iter);
-					}
+				SafeSyncCollection_c_iter_Map_cachekey_0 = TempRef_c;
+				SafeSyncCollection_c_iter_Map_cachekey_1 = TempRef_iter;
+				SafeSyncCollection_c_iter_Map_cachenode = mainMonitor;
+			}
+
+			if (mainMonitor != null ) {
+				mainMonitor.Prop_1_event_asyncCreateIter(c, iter);
+				if(mainMonitor.Prop_1_Category_match) {
+					mainMonitor.Prop_1_handler_match(c, iter);
 				}
 			}
 		}
+		SafeSyncCollection_MOPLock.unlock();
 	}
 
 	pointcut SafeSyncCollection_accessIter(Iterator iter) : (call(* Iterator.*(..)) && target(iter)) && MOP_CommonPointCut();
 	before (Iterator iter) : SafeSyncCollection_accessIter(iter) {
-		synchronized(SafeSyncCollection_MOPLock) {
-			if (SafeSyncCollection_activated) {
-			    	memoryLogger.logMemoryConsumption(); // prm4j-eval
-				SafeSyncCollectionMonitor mainMonitor = null;
-				javamoprt.map.MOPMap mainMap = null;
-				SafeSyncCollectionMonitor_Set mainSet = null;
-				javamoprt.ref.MOPTagWeakReference TempRef_iter;
+		while (!SafeSyncCollection_MOPLock.tryLock()) {
+			Thread.yield();
+		}
+		memoryLogger.logMemoryConsumption(); // prm4j-eval
+		if (SafeSyncCollection_activated) {
+			SafeSyncCollectionMonitor mainMonitor = null;
+			javamoprt.map.MOPMap mainMap = null;
+			SafeSyncCollectionMonitor_Set mainSet = null;
+			javamoprt.ref.MOPTagWeakReference TempRef_iter;
 
-				// Cache Retrieval
-				if (iter == SafeSyncCollection_iter_Map_cachekey_1.get()) {
-					TempRef_iter = SafeSyncCollection_iter_Map_cachekey_1;
+			// Cache Retrieval
+			if (iter == SafeSyncCollection_iter_Map_cachekey_1.get()) {
+				TempRef_iter = SafeSyncCollection_iter_Map_cachekey_1;
 
-					mainSet = SafeSyncCollection_iter_Map_cacheset;
-					mainMonitor = SafeSyncCollection_iter_Map_cachenode;
-				} else {
-					TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+				mainSet = SafeSyncCollection_iter_Map_cacheset;
+				mainMonitor = SafeSyncCollection_iter_Map_cachenode;
+			} else {
+				TempRef_iter = SafeSyncCollection_Iterator_RefMap.getTagRef(iter);
+			}
+
+			if (mainSet == null || mainMonitor == null) {
+				mainMap = SafeSyncCollection_iter_Map;
+				mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
+				mainSet = (SafeSyncCollectionMonitor_Set)mainMap.getSet(TempRef_iter);
+
+				if (mainMonitor == null) {
+
+					TempRef_iter.disable = SafeSyncCollection_timestamp;
+					SafeSyncCollection_timestamp++;
 				}
 
-				if (mainSet == null || mainMonitor == null) {
-					mainMap = SafeSyncCollection_iter_Map;
-					mainMonitor = (SafeSyncCollectionMonitor)mainMap.getNode(TempRef_iter);
-					mainSet = (SafeSyncCollectionMonitor_Set)mainMap.getSet(TempRef_iter);
+				SafeSyncCollection_iter_Map_cachekey_1 = TempRef_iter;
+				SafeSyncCollection_iter_Map_cacheset = mainSet;
+				SafeSyncCollection_iter_Map_cachenode = mainMonitor;
+			}
 
-					if (mainMonitor == null) {
-
-						TempRef_iter.disable = SafeSyncCollection_timestamp;
-						SafeSyncCollection_timestamp++;
-					}
-
-					SafeSyncCollection_iter_Map_cachekey_1 = TempRef_iter;
-					SafeSyncCollection_iter_Map_cacheset = mainSet;
-					SafeSyncCollection_iter_Map_cachenode = mainMonitor;
-				}
-
-				if(mainSet != null) {
-					mainSet.event_accessIter(iter);
-				}
+			if(mainSet != null) {
+				mainSet.event_accessIter(iter);
 			}
 		}
+		SafeSyncCollection_MOPLock.unlock();
 	}
 	
 	/**
@@ -660,7 +669,8 @@ public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
 		SafeSyncCollection_timestamp = 1;
 
 		SafeSyncCollection_activated = false;
-
+		
+		// Indexing Trees
 		SafeSyncCollection_c_Map_cachekey_0 = javamoprt.map.MOPTagRefMap.NULRef;
 		SafeSyncCollection_c_Map_cacheset = null;
 		SafeSyncCollection_c_Map_cachenode = null;
@@ -673,6 +683,7 @@ public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
 		SafeSyncCollection_iter_Map_cacheset = null;
 		SafeSyncCollection_iter_Map_cachenode = null;
 
+		// Trees for References
 		SafeSyncCollection_Iterator_RefMap = new javamoprt.map.MOPTagRefMap();
 		SafeSyncCollection_Object_RefMap = new javamoprt.map.MOPTagRefMap();
 		
@@ -686,5 +697,6 @@ public aspect SafeSyncCollectionMonitorAspect implements javamoprt.MOPObject {
 		System.gc();
 		System.gc();
 	}
+
 
 }
