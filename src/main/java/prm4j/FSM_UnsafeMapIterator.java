@@ -48,9 +48,9 @@ public class FSM_UnsafeMapIterator {
 
     public FSM_UnsafeMapIterator() {
 	initial.addTransition(createColl, s1); // creation event
-	initial.addTransition(updateMap, initial); // self-loop
-	initial.addTransition(useIter, initial); // self-loop
-	initial.addTransition(createIter, initial); // self-loop
+	// initial.addTransition(updateMap, initial); // self-loop
+	// initial.addTransition(useIter, initial); // self-loop
+	// initial.addTransition(createIter, initial); // self-loop
 	s1.addTransition(updateMap, s1);
 	s1.addTransition(createIter, s2);
 	s2.addTransition(useIter, s2);

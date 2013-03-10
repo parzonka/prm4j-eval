@@ -45,9 +45,9 @@ public class FSM_SafeSyncCollection {
 
     public FSM_SafeSyncCollection() {
 	initial.addTransition(sync, s1); // creation event
-	initial.addTransition(asyncCreateIter, initial); // self-loop
-	initial.addTransition(syncCreateIter, initial); // self-loop
-	initial.addTransition(accessIter, initial); // self-loop
+	// initial.addTransition(asyncCreateIter, initial); // self-loop
+	// initial.addTransition(syncCreateIter, initial); // self-loop
+	// initial.addTransition(accessIter, initial); // self-loop
 	s1.addTransition(asyncCreateIter, error);
 	s1.addTransition(syncCreateIter, s2);
 	s2.addTransition(accessIter, error);

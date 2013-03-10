@@ -49,10 +49,10 @@ public class FSM_SafeSyncMap {
 
     public FSM_SafeSyncMap() {
 	initial.addTransition(sync, s1); // creation event
-	initial.addTransition(createSet, initial); // self-loop
-	initial.addTransition(asyncCreateIter, initial); // self-loop
-	initial.addTransition(syncCreateIter, initial); // self-loop
-	initial.addTransition(accessIter, initial); // self-loop
+	// initial.addTransition(createSet, initial); // self-loop
+	// initial.addTransition(asyncCreateIter, initial); // self-loop
+	// initial.addTransition(syncCreateIter, initial); // self-loop
+	// initial.addTransition(accessIter, initial); // self-loop
 	s1.addTransition(createSet, s2);
 	s2.addTransition(asyncCreateIter, error);
 	s2.addTransition(syncCreateIter, s3);
