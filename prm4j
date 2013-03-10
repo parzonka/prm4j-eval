@@ -30,7 +30,8 @@ maxIterations=25 # sets the maximal number iterations per JVM invocation
 ######################################################################################################################
 
 if [ -z "$1" ]; then
-	paramProperties="HasNext UnsafeIterator UnsafeMapIterator SafeSyncCollection SafeSyncMap"
+	# paramProperties="HasNext UnsafeIterator UnsafeMapIterator SafeSyncCollection SafeSyncMap"
+	paramProperties="UnsafeIterator UnsafeMapIterator SafeSyncCollection SafeSyncMap"
 else
 	paramProperties=$1
 fi
@@ -104,7 +105,7 @@ for invocation in $(jot $invocations 1) ; do
 				while [ $STATUS -eq 0 ]; do
 	    			echo "Starting benchmark [prm4j:$benchmark:$paramProperty] JVM invocation ${invocation}..."
 					java -Xmx2048M -javaagent:"${WEAVER}" -Xbootclasspath/a:"$RT" \
-						-Dprm4j.logging=true \
+						-Dprm4j.logging=false \
 						-Dprm4jeval.invocation=${invocation} \
 						-Dprm4j.bindingCleaningInterval=5000 \
 						-Dprm4j.monitorCleaningInterval=5000 \
