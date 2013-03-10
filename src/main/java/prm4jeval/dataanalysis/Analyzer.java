@@ -91,6 +91,8 @@ public class Analyzer {
 	writeStatsTable(logName, outputPath, "matches", "MATCHES", 5);
 	writeStatsTable(logName, outputPath, "memory-mean", "MEMORY", 5);
 	writeStatsTable(logName, outputPath, "memory-max", "MEMORY", 6);
+	writeStatsTable2(logName, outputPath, "memory-mean2", "MEMORY", 5);
+	writeStatsTable2(logName, outputPath, "memory-max2", "MEMORY", 6);
 	writeStatsTable(logName, outputPath, "monitors-created-alive", "MONITORS", 5);
 	writeStatsTable(logName, outputPath, "monitors-updated", "MONITORS", 6);
 	writeStatsTable(logName, outputPath, "monitors-orphaned", "MONITORS", 7);
@@ -106,6 +108,8 @@ public class Analyzer {
 	writeStatsTable(logName, outputPath, "matches", "MATCHES", 5);
 	writeStatsTable(logName, outputPath, "memory-mean", "MEMORY", 5);
 	writeStatsTable(logName, outputPath, "memory-max", "MEMORY", 6);
+	writeStatsTable2(logName, outputPath, "memory-mean2", "MEMORY", 5);
+	writeStatsTable2(logName, outputPath, "memory-max2", "MEMORY", 6);
     }
 
     private static void writeBaselinePerformanceTable(String baselineLogName, String outputPath) {
@@ -159,6 +163,30 @@ public class Analyzer {
 			if (split[3].equals(rowFilter)) {
 			    // the first measurement of each invocation will not be counted (warm-up)
 			    if (!skippedFirstLines.add(split[0] + " " + split[1] + " " + split[2])) {
+				// this allows that older logs still work: robustness regarding missing columns
+				if (columnNr < split.length) {
+				    put(split[2], split[1], Double.parseDouble(split[columnNr]));
+				}
+			    }
+			}
+		    }
+		}, outputPath, tableName);
+    }
+
+    private static void writeStatsTable2(final String logName, final String outputPath, final String tableName,
+	    final String rowFilter, final int columnNr) {
+	final Set<String> skippedFirstLines = new HashSet<String>();
+	final Set<String> selectedFirstLines = new HashSet<String>();
+	AnalysisResultsTableWriter.writeCITable( //
+		new TableParser2(logName) {
+		    @Override
+		    public void parseLine(String line) {
+			final String[] split = line.split("\\s+");
+			if (split[3].equals(rowFilter)) {
+			    // the first measurement of each invocation will not be counted (warm-up) and we only take
+			    // the second measurement
+			    if (!skippedFirstLines.add(split[0] + " " + split[1] + " " + split[2])
+				    && selectedFirstLines.add(split[0] + " " + split[1] + " " + split[2])) {
 				// this allows that older logs still work: robustness regarding missing columns
 				if (columnNr < split.length) {
 				    put(split[2], split[1], Double.parseDouble(split[columnNr]));
